@@ -61,4 +61,4 @@ python weatherMJFWbot.py
 
 ---
 
-☁️ Built with care by Ivan. Open to feedback and freelance projects.
+☁️ Built with care by Ivan Mudriakov. Open to feedback and freelance projects.
