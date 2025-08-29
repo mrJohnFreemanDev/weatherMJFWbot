@@ -6,12 +6,9 @@ from datetime import datetime
 import pytz
 import re
 
-
-# Загрузка токенов из файла .env
 load_dotenv("all.env")
 bot = telebot.TeleBot(API_TOKEN)
 
-# Настройка логирования
 logging.basicConfig(
     level=logging.ERROR,
     format='%(asctime)s - %(message)s',
@@ -22,13 +19,11 @@ logging.basicConfig(
     ]
 )
 
-# Функция для записи запросов клиентов
 def log_client_request(user_id, username, query):
     gmt_time = datetime.now(pytz.timezone('GMT')).strftime('%Y-%m-%d %H:%M:%S')
     with open("clients.log", "a") as clients_log:
         clients_log.write(f"Time: {gmt_time}\nUser ID: {user_id}\nUsername: {username}\nQuery: {query}\n")
 
-# Функция для преобразования направления ветра и добавления смайлов
 def get_wind_direction(dir_code, lang='en'):
     directions_en = {
         "N": "North 🌍",
@@ -54,7 +49,6 @@ def get_wind_direction(dir_code, lang='en'):
         return directions_ru.get(dir_code, dir_code)
     return directions_en.get(dir_code, dir_code)
 
-# Функция для добавления смайлов к погодным условиям
 def get_weather_emoji(temp_c):
     if temp_c <= 0:
         return "❄️"  # Snowflake
@@ -73,11 +67,9 @@ def get_time_of_day_emoji(local_time):
         return "🌃"  # Night with stars
 
 def get_country_flag_emoji(country_code):
-    # Проверяем, что код страны корректен (2 буквы)
     if len(country_code) == 2 and country_code.isalpha():
-        # Преобразуем код страны в символы флага
         return chr(127462 + ord(country_code.upper()[0]) - ord('A')) + chr(127462 + ord(country_code.upper()[1]) - ord('A'))
-    return "🏳️"  # Белый флаг для случаев, если код страны недоступен
+    return "🏳️"
 
 def convert_kph_to_mph(kph):
     return round(kph * 0.621371, 1)
@@ -88,24 +80,15 @@ def convert_c_to_f(celsius):
 @bot.message_handler(content_types=['text'])
 def asking(message):
     try:
-        # Логируем запрос клиента
         log_client_request(message.from_user.id, message.from_user.username, message.text)
-
-        # Определяем язык по наличию кириллицы
         lang = 'ru' if re.search('[\u0400-\u04FF]', message.text) else 'en'
-
-        # Отправляем запрос на получение данных о погоде
         response = requests.get(
             f'http://api.weatherapi.com/v1/current.json?key={WAPI_KEY}&q={message.text}&aqi=no'
         )
-        response.raise_for_status()  # Проверка на HTTP ошибки
-
+        response.raise_for_status()
         data = response.json()
-
-        # Извлечение данных
         loc = data["location"]
         cur = data["current"]
-
         name = loc['name']
         country = loc['country']
         country_code = loc.get('country_code', 'unknown')
@@ -117,13 +100,10 @@ def asking(message):
         wind_speed_kph = cur['wind_kph']
         wind_speed_mph = convert_kph_to_mph(wind_speed_kph)
         wind_dir = get_wind_direction(cur['wind_dir'], lang)
-
-        # Добавление смайлов к погодным данным
         weather_emoji = get_weather_emoji(temp_c)
         time_of_day_emoji = get_time_of_day_emoji(local_time)
         country_flag_emoji = get_country_flag_emoji(country_code)
 
-        # Форматирование ответа
         if lang == 'ru':
             result = (
                 f"{time_of_day_emoji} Местное время: {local_time}\n"
@@ -154,7 +134,6 @@ def asking(message):
         else:
             result = "Sorry, I cannot find this location."
 
-    # Отправляем ответ пользователю
     bot.reply_to(message, result)
 
 bot.infinity_polling()
